@@ -1,12 +1,13 @@
 %{
-#include "limbaj.tab.h"   // Header generat de Bison (contine tokenii)
-#include <cstring>        // Pentru strdup
+#include "limbaj.tab.h"
+#include <cstring>   
+#include <cstdlib>
+#include <cstdio>   
 %}
-
-/* Sectiunea de reguli */
+%option noyywrap 
 %%
 
-/* Cuvinte cheie */
+
 "class"     { return CLASS; }
 "int"       { return INT; }
 "float"     { return FLOAT; }
@@ -14,61 +15,72 @@
 "bool"      { return BOOL; }
 "void"      { return VOID; }
 
-/* Structuri de control */
+
 "if"        { return IF; }
 "while"     { return WHILE; }
 "return"    { return RETURN; }
 
-/* Functia main și functia predefinita Print */
+
 "main"      { return MAIN; }
 "Print"     { return PRINT; }
 
-/* Literali booleani */
-"true"      { yylval.bval = true; return BOOL_LIT; }
-"false"     { yylval.bval = false; return BOOL_LIT; }
 
-/* Literali numerici */
-[0-9]+"."[0-9]+ { 
+[0-9]+\.[0-9]+ { 
     yylval.fval = atof(yytext);  // Conversie la float
     return FLOAT_LIT; 
 }
+
+
+"true"      { yylval.bval = true; return BOOL_LIT; }
+"false"     { yylval.bval = false; return BOOL_LIT; }
+
+
 
 [0-9]+ { 
     yylval.ival = atoi(yytext);  // Conversie la int
     return INT_LIT; 
 }
 
-/* Literal string */
+
+"==" | 
+"!=" | 
+"<" | 
+">" | 
+"<=" | 
+">=" { 
+    return RELOP; //operatori relationali
+}
+
+
+"&&" | 
+"||" { 
+    return LOGICOP;  //operatori logici
+}
+
+
 \".*\" { 
-    yylval.sval = strdup(yytext); 
+    yylval.sval = strdup(yytext);  //literal string
     return STRING_LIT; 
 }
 
-/* Identificatori (nume de variabile, functii, clase) */
+
 [a-zA-Z_][a-zA-Z0-9_]* { 
-    yylval.sval = strdup(yytext); 
+    yylval.sval = strdup(yytext);  //identificatori clase, functii
     return IDENT; 
 }
 
-/* Operatori relationali */
-"==" | "!=" | "<" | ">" | "<=" | ">=" { 
-    return RELOP; 
+
+"+" | 
+"-" | 
+"*" | 
+"/" { 
+    return ARITHOP; //operatii aritmetice
 }
 
-/* Operatori logici */
-"&&" | "||" { 
-    return LOGICOP; 
-}
 
-/* Operatori aritmetici */
-"+" | "-" | "*" | "/" { 
-    return ARITHOP; 
-}
-
-/* Operator de atribuire */
 "=" { return ASSIGN; }
 
-/* Separatori și simboluri */
+
 ";" { return ';'; }
 "," { return ','; }
 "(" { return '('; }
@@ -77,10 +89,10 @@
 "}" { return '}'; }
 "." { return '.'; }
 
-/* Spatii albe – ignorate */
-[ \t\n]+ { /* ignoram */ }
 
-/* Orice alt caracter */
+[ \t\n]+ {  }
+
+
 . { return yytext[0]; }
 
 %%

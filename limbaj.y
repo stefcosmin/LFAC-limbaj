@@ -1,12 +1,17 @@
 %{
 #include <iostream>
+#include <cstdlib>
+#include <cstring>
 using namespace std;
 
 /* Declaratii pentru lex */
-int yylex();
+extern int yylex();
 void yyerror(const char* s) {
     cerr << "Eroare de sintaxa: " << s << endl;
 }
+
+/* Definim yywrap pentru Flex */
+int yywrap() { return 1; }
 %}
 
 /* Tipurile posibile pentru yylval */
@@ -17,7 +22,7 @@ void yyerror(const char* s) {
     char* sval;
 }
 
-/* Tokenii primiti de la lex*/
+/* Tokenii primiti de la lex */
 %token CLASS IF WHILE RETURN MAIN PRINT
 %token INT FLOAT STRING BOOL VOID
 %token IDENT
@@ -25,143 +30,160 @@ void yyerror(const char* s) {
 %token ASSIGN
 %token ARITHOP LOGICOP RELOP
 
+/* Precedenta operatorilor */
+%left LOGICOP
+%nonassoc RELOP
+%left '+' '-'
+%left '*' '/'
+
 %%
 
-/* Programul este format din declaratii globale + blocul main */
 program
     : global_decls main_block
     ;
 
-/* Declaratii globale: clase si functii */
 global_decls
-    : global_decls class_decl
+    : /* gol */
+    | global_decls class_decl
     | global_decls function_decl
-    | /* gol */
     ;
 
-/* Declaratie de clasa – permisa doar global */
 class_decl
     : CLASS IDENT '{' class_body '}' ';'
     ;
 
-/* Corpul clasei: campuri si metode */
 class_body
-    : class_body field_decl
+    : /* gol */
+    | class_body field_decl
     | class_body method_decl
-    | /* gol */
     ;
 
-/* Declaratie de camp */
 field_decl
     : type IDENT ';'
     ;
 
-/* Metoda a unei clase */
 method_decl
     : type IDENT '(' param_list ')' '{' local_decls stmt_list '}'
     ;
 
-/* Functie globala */
 function_decl
     : type IDENT '(' param_list ')' '{' local_decls stmt_list '}'
     ;
 
-/* Lista de parametri */
 param_list
-    : param_list ',' param
-    | param
-    | /* gol */
+    : /* gol */
+    | param_list_nonempty
     ;
 
-/* Parametru individual */
+param_list_nonempty
+    : param
+    | param ',' param_list_nonempty
+    ;
+
 param
     : type IDENT
     ;
 
-/* Tipuri de date (inclusiv clase) */
 type
     : INT
     | FLOAT
     | STRING
     | BOOL
-    | IDENT      /* tip definit de utilizator (clasa) */
+    | IDENT
     ;
 
-/* Declaratii locale – DOAR la începutul functiei */
 local_decls
-    : local_decls var_decl
-    | /* gol */
+    : /* gol */
+    | local_decls type IDENT;
     ;
 
-/* Declaratie de variabila */
-var_decl
-    : type IDENT ';'
-    ;
-
-/* Blocul main – NU permite declaratii */
 main_block
     : MAIN '(' ')' '{' stmt_list '}'
     ;
 
-/* Lista de instructiuni */
 stmt_list
-    : stmt_list stmt
-    | /* gol */
+    : /* gol */
+    | stmt_list stmt
     ;
 
-/* Instructiuni permise */
 stmt
     : assignment ';'
     | if_stmt
     | while_stmt
-    | func_call ';'
+    | func_call_stmt
     | RETURN expr ';'
     ;
 
-/* Atribuire */
 assignment
     : lvalue ASSIGN expr
     ;
 
-/* Valoare stanga (variabila sau camp de obiect) */
 lvalue
     : IDENT
     | IDENT '.' IDENT
     ;
 
-/* Instructiune if */
 if_stmt
     : IF '(' expr ')' '{' stmt_list '}'
     ;
 
-/* Instructiune while */
 while_stmt
     : WHILE '(' expr ')' '{' stmt_list '}'
     ;
 
-/* Apel de functie */
-func_call
-    : IDENT '(' arg_list ')'
-    | PRINT '(' expr ')'                /* functie predefinita */
-    | IDENT '.' IDENT '(' arg_list ')'  /* metoda de obiect */
+/* Expresii descompuse pe nivele pentru a evita conflictele */
+expr
+    : logic_expr
+    ;
+
+logic_expr
+    : logic_expr LOGICOP rel_expr
+    | rel_expr
+    ;
+
+rel_expr
+    : rel_expr RELOP add_expr
+    | add_expr
+    ;
+
+add_expr
+    : add_expr '+' mul_expr
+    | add_expr '-' mul_expr
+    | mul_expr
+    ;
+
+mul_expr
+    : mul_expr '*' atom
+    | mul_expr '/' atom
+    | atom
+    ;
+
+/* Atomii pot fi literal, lvalue sau apel de funcție */
+atom
+    : '(' expr ')'
+    | literal
+    | IDENT '(' arg_list ')'             /* apel funcție global */
+    | IDENT '.' IDENT '(' arg_list ')'   /* apel metodă obiect */
+    | PRINT '(' expr ')'                 /* funcție predefinită */
+    | lvalue                             /* orice alt IDENT -> lvalue */
+    ;
+
+/* Apel de funcție ca instrucțiune separată */
+func_call_stmt
+    : IDENT '(' arg_list ')' ';'
+    | IDENT '.' IDENT '(' arg_list ')' ';'
+    | PRINT '(' expr ')' ';'
     ;
 
 /* Lista de argumente */
 arg_list
-    : arg_list ',' expr
-    | expr
-    | /* gol */
+    : /* gol */
+    | arg_list_nonempty
     ;
 
-/* Expresii */
-expr
-    : expr ARITHOP expr
-    | expr RELOP expr
-    | expr LOGICOP expr
-    | '(' expr ')'
-    | lvalue
-    | literal
-    | func_call
+arg_list_nonempty
+    : expr
+    | expr ',' arg_list_nonempty
     ;
 
 /* Literali */
@@ -174,7 +196,6 @@ literal
 
 %%
 
-/* Functia main a parserului */
 int main() {
     return yyparse();
 }

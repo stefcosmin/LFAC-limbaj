@@ -10,8 +10,6 @@ void yyerror(const char* s) {
     cerr << "Eroare de sintaxa: " << s << endl;
 }
 
-/* Definim yywrap pentru Flex */
-int yywrap() { return 1; }
 %}
 
 /* Tipurile posibile pentru yylval */
@@ -38,6 +36,7 @@ int yywrap() { return 1; }
 
 %%
 
+
 program
     : global_decls main_block
     ;
@@ -63,11 +62,11 @@ field_decl
     ;
 
 method_decl
-    : type IDENT '(' param_list ')' '{' local_decls stmt_list '}'
+    : type IDENT '(' param_list ')' '{' stmt_list '}'
     ;
 
 function_decl
-    : type IDENT '(' param_list ')' '{' local_decls stmt_list '}'
+    : type IDENT '(' param_list ')' '{' stmt_list '}'
     ;
 
 param_list
@@ -92,11 +91,6 @@ type
     | IDENT
     ;
 
-local_decls
-    : /* gol */
-    | local_decls type IDENT;
-    ;
-
 main_block
     : MAIN '(' ')' '{' stmt_list '}'
     ;
@@ -107,16 +101,22 @@ stmt_list
     ;
 
 stmt
-    : assignment ';'
+    : declaration       
+    | assignment ';'
     | if_stmt
     | while_stmt
     | func_call_stmt
     | RETURN expr ';'
     ;
 
+declaration
+    : type IDENT ';'
+    ;
+
 assignment
     : lvalue ASSIGN expr
     ;
+
 
 lvalue
     : IDENT
@@ -158,17 +158,17 @@ mul_expr
     | atom
     ;
 
-/* Atomii pot fi literal, lvalue sau apel de funcție */
+/* Atomii pot fi literal, lvalue sau apel de functie */
 atom
     : '(' expr ')'
     | literal
-    | IDENT '(' arg_list ')'             /* apel funcție global */
-    | IDENT '.' IDENT '(' arg_list ')'   /* apel metodă obiect */
-    | PRINT '(' expr ')'                 /* funcție predefinită */
+    | IDENT '(' arg_list ')'             /* apel functie global */
+    | IDENT '.' IDENT '(' arg_list ')'   /* apel metoda obiect */
+    | PRINT '(' expr ')'                 /* functie predefinita */
     | lvalue                             /* orice alt IDENT -> lvalue */
     ;
 
-/* Apel de funcție ca instrucțiune separată */
+/* Apel de functie ca instructiune separata */
 func_call_stmt
     : IDENT '(' arg_list ')' ';'
     | IDENT '.' IDENT '(' arg_list ')' ';'

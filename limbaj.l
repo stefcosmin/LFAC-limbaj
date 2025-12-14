@@ -4,9 +4,15 @@
 #include <cstdlib>
 #include <cstdio>   
 %}
+
+%x comment
+
+
 %option noyywrap 
 %%
-
+"/*" {BEGIN comment;}
+<comment>"*/" {BEGIN 0;}
+<comment>.|\n ;
 
 "class"     { return CLASS; }
 "int"       { return INT; }
@@ -42,18 +48,12 @@
 }
 
 
-"==" | 
-"!=" | 
-"<" | 
-">" | 
-"<=" | 
-">=" { 
+"=="|"!="|"<"|">"|"<="|">=" { 
     return RELOP; //operatori relationali
 }
 
 
-"&&" | 
-"||" { 
+"&&"|"||" { 
     return LOGICOP;  //operatori logici
 }
 
@@ -70,10 +70,7 @@
 }
 
 
-"+" | 
-"-" | 
-"*" | 
-"/" { 
+"+"|"-"|"*"|"/" { 
     return ARITHOP; //operatii aritmetice
 }
 

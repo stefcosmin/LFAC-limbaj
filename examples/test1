@@ -1,0 +1,19 @@
+int a;
+int b=a-3;
+
+int sum(int x, int y)
+{
+ return x+y;
+}
+
+void sum(int x, int y)
+{
+ Print(x-y);
+}
+
+main()
+{
+x=a-b;
+Print(a-b);
+Print(sum(x,b));
+}

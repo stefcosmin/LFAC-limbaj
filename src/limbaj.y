@@ -2,13 +2,26 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+
+#include "src/scope_node.hpp"
+
 using namespace std;
 
 /* Declaratii pentru lex */
 extern int yylex();
+extern FILE* yyin;
+extern char* yytext;
+extern int yylineno;
+
+int error_count = 0;
+
 void yyerror(const char* s) {
-    cerr << "Eroare de sintaxa: " << s << endl;
+    cerr << "Eroare de sintaxa: " << s << " la linia " << yylineno << endl;
 }
+
+auto root = new scope_node(SNType::DEFAULT, "global");
+scope_node* current_scope = root;
+
 
 %}
 
@@ -22,8 +35,8 @@ void yyerror(const char* s) {
 
 /* Tokenii primiti de la lex */
 %token CLASS IF WHILE RETURN MAIN PRINT
-%token INT FLOAT STRING BOOL VOID
-%token IDENT
+%token <sval> INT FLOAT STRING BOOL VOID 
+%token <sval> IDENT
 %token INT_LIT FLOAT_LIT STRING_LIT BOOL_LIT
 %token ASSIGN
 %token ARITHOP LOGICOP RELOP
@@ -48,7 +61,11 @@ global_decls
     ;
 
 class_decl
-    : CLASS IDENT '{' class_body '}' ';'
+    : CLASS IDENT '{' { 
+        auto new_scope = new scope_node(SNType::CLASS, $2);
+        current_scope->add_child(new_scope);
+        } 
+       class_body '}' ';' 
     ;
 
 class_body
@@ -58,7 +75,7 @@ class_body
     ;
 
 field_decl
-    : type IDENT ';'
+    : type IDENT ';' { current_scope->add_variable(var_data($2, "", ""));}
     ;
 
 method_decl
@@ -66,7 +83,7 @@ method_decl
     ;
 
 function_decl
-    : type IDENT '(' param_list ')' '{' stmt_list '}'
+    : type IDENT '(' param_list ')' '{' stmt_list '}' {}
     ;
 
 param_list
@@ -84,7 +101,7 @@ param
     ;
 
 type
-    : INT
+    : INT 
     | FLOAT
     | STRING
     | BOOL
@@ -196,6 +213,17 @@ literal
 
 %%
 
-int main() {
-    return yyparse();
+int main(int argc, const char* argv[]) {
+    if(argc < 2){
+       std::cout <<"Please provide a path to the file you want to compile"; 
+        return 0;
+    }
+     if (error_count == 0) {
+         cout << ">> The program is correct!" << endl;
+     } else {
+         cout << ">> Returned " << error_count << " errors." << endl;
+     }
+    yyin=fopen(argv[1],"r");
+    yyparse();
+    scope_node::print(root); 
 }

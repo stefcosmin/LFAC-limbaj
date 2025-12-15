@@ -1,0 +1,14 @@
+
+class cat{
+    int age;
+    int weight;
+    
+    void meow(){
+        Print("Meow");
+    }
+};
+
+int main(){
+    cat c;
+    c.meow();
+}

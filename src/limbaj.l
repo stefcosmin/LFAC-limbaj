@@ -1,8 +1,12 @@
+
 %{
 #include "limbaj.tab.h"
 #include <cstring>   
 #include <cstdlib>
 #include <cstdio>   
+
+extern int yylineno;
+
 %}
 
 %x comment
@@ -13,6 +17,9 @@
 "/*" {BEGIN comment;}
 <comment>"*/" {BEGIN 0;}
 <comment>.|\n ;
+\n { 
+    yylineno++;
+}
 
 "class"     { return CLASS; }
 "int"       { return INT; }

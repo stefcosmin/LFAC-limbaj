@@ -56,10 +56,16 @@ program
 
 global_decls
     : /* gol */
+    | global_decls declarations ';'
     | global_decls class_decl
     | global_decls function_decl
     ;
 
+
+local_decls
+    : /* gol */
+    | local_decls param_list ';'
+    ;
 class_decl
     : CLASS IDENT '{' { 
         auto new_scope = new scope_node(SNType::CLASS, $2);
@@ -88,7 +94,7 @@ function_decl
 
 param_list
     : /* gol */
-    | param_list_nonempty
+    | param_list_nonempty declarations ';'
     ;
 
 param_list_nonempty
@@ -118,12 +124,16 @@ stmt_list
     ;
 
 stmt
-    : declaration       
-    | assignment ';'
+    : assignment ';'
     | if_stmt
     | while_stmt
     | func_call_stmt
     | RETURN expr ';'
+    ;
+
+declarations
+    : declarations declaration
+    | /* gol */
     ;
 
 declaration

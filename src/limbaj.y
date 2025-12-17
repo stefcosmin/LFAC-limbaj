@@ -61,11 +61,6 @@ global_decls
     | global_decls function_decl
     ;
 
-
-local_decls
-    : /* gol */
-    | local_decls param_list ';'
-    ;
 class_decl
     : CLASS IDENT '{' { 
         auto new_scope = new scope_node(SNType::CLASS, $2);
@@ -89,7 +84,12 @@ method_decl
     ;
 
 function_decl
-    : type IDENT '(' param_list ')' '{' stmt_list '}' {}
+    : type IDENT '(' param_list ')' '{' local_decls stmt_list '}'
+    ;
+
+local_decls
+    : /* gol */
+    | local_decls declarations ';'
     ;
 
 param_list

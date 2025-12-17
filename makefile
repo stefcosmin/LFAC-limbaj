@@ -29,7 +29,7 @@ gen:
 	@flex $(SRC_DIR)/$(FILE).l 
 debug: 
 	@echo "--- Building in debug..."
-	@$(COMPILER) -std=c++17 -g lex.yy.c  $(FILE).tab.c -o $(TARGET)
+	$(COMPILER) -std=c++17 -g lex.yy.c  $(FILE).tab.c -o $(TARGET)
 	@echo "--- Done building '$(TARGET)' in debug mode!"
 release:
 	@echo "--- Building in release..."

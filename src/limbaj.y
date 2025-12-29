@@ -19,6 +19,8 @@ int error_count = 0;
 
 void yyerror(const char* s) {
     cerr << "Eroare de sintaxa: " << s << " la linia " << yylineno << endl;
+    cerr<<"Eroare la tokenul:"<<yytext<<endl;
+    error_count++;
 }
 
 auto root = new scope_node(SNType::DEFAULT, "global");
@@ -34,7 +36,7 @@ scope_node* current_scope = root;
     bool bval;
     char* sval;
 }
-
+%error-verbose
 /* Tokenii primiti de la lex */
 %token CLASS IF WHILE RETURN MAIN PRINT
 %token <sval> INT FLOAT STRING BOOL VOID 
@@ -94,7 +96,8 @@ function_decl
 
 // acts more or less like an alias
 local_decls
-    : opt_declarations ';'
+    : /* gol */
+    | opt_declarations ';'
     ;
 
 // acts more or less like an alias
@@ -239,12 +242,14 @@ int main(int argc, const char* argv[]) {
        std::cout <<"Please provide a path to the file you want to compile"; 
         return 0;
     }
+    yyin=fopen(argv[1],"r");
+    yyparse();
+    scope_node::print(root); 
+    
      if (error_count == 0) {
          cout << ">> The program is correct!" << endl;
      } else {
          cout << ">> Returned " << error_count << " errors." << endl;
      }
-    yyin=fopen(argv[1],"r");
-    yyparse();
-    scope_node::print(root); 
+    
 }

@@ -1,0 +1,9 @@
+int a;
+int b;
+int sum(int x, int y){
+ return x+y;}
+void sum(int x, int y){
+  int a;
+ Print(x-y);}
+
+main(){}

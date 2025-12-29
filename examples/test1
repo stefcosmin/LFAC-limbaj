@@ -1,5 +1,5 @@
 int a;
-int b=a-3;
+int b;
 
 int sum(int x, int y)
 {

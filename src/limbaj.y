@@ -3,7 +3,9 @@
 #include <cstdlib>
 #include <cstring>
 
+
 #include "src/scope_node.hpp"
+#include "src/log.hpp"
 
 using namespace std;
 
@@ -21,6 +23,7 @@ void yyerror(const char* s) {
 
 auto root = new scope_node(SNType::DEFAULT, "global");
 scope_node* current_scope = root;
+
 
 %}
 
@@ -49,28 +52,26 @@ scope_node* current_scope = root;
 %%
 
 
-program
-    : global_decls main_block
+program 
+    : global_decls { dsp::debug("Entered global scope"); }
+      main_block { dsp::debug("Entered main block"); }
     ;
 
 global_decls
     : /* gol */
-    | global_decls declarations ';'
-    | global_decls class_decl
-    | global_decls function_decl
+    | global_decls declaration { dsp::debug("Processing global declaration"); } 
+    | global_decls class_decl  { dsp::debug("Processing class declartions"); } 
+    | global_decls function_decl { dsp::debug("Processing global function declaration"); } 
     ;
 
 class_decl
     : CLASS IDENT '{' { 
-        cout << "ENTER scope: " << $2 << endl;
-        auto new_scope = new scope_node(SNType::CLASS, $2, current_scope);
+        dsp::debug("Entered class scope");
+
+        auto new_scope = new scope_node(SNType::CLASS, $2);
         current_scope->add_child(new_scope);
-        current_scope = new_scope;
         } 
-       class_body '}' 
-       ';' {
-        current_scope = current_scope->parent;
-        }
+       class_body '}' ';' 
     ;
 
 class_body
@@ -84,46 +85,31 @@ field_decl
     ;
 
 method_decl
-    : type IDENT '(' param_list ')' '{'  {
-    auto new_scope = new scope_node(SNType::FUNCTION, $2, current_scope);
-    current_scope->add_child(new_scope);
-    current_scope = new_scope;
-    }
-    stmt_list '}' {
-        current_scope = current_scope->parent;
-    }
+    : type IDENT '(' param_list ')' '{' stmt_list '}'
     ;
 
 function_decl
-    : type IDENT '(' param_list ')' {
-// aici e gresit, trebuie $1 pt primul argument
-    current_scope->add_function(func_data($2, $2));
-    auto new_scope = new scope_node(SNType::FUNCTION, $2, current_scope);
-    current_scope->add_child(new_scope);
-    current_scope = new_scope;
-     }
-     '{' local_decls stmt_list '}' {
-    current_scope = current_scope->parent;
-    }
-    
-local_decls
-    : /* gol */
-    | local_decls declarations ';'
+    : type IDENT '(' param_list ')' '{' local_decls stmt_list '}'
     ;
 
-param_list
-    : /* gol */
-    | param_list_nonempty declarations ';'
+// acts more or less like an alias
+local_decls
+    : opt_declarations ';'
     ;
-    
-    
+
+// acts more or less like an alias
+param_list
+    : /* nik */
+    | param_list_nonempty 
+    ;
+
 param_list_nonempty
     : param
     | param ',' param_list_nonempty
     ;
 
-param
-    : type IDENT
+param 
+    : type IDENT 
     ;
 
 type
@@ -133,24 +119,16 @@ type
     | BOOL
     | IDENT
     ;
-    
-   main_block
-    : MAIN '(' ')' '{' {
-        auto new_scope = new scope_node(SNType::FUNCTION, "main", current_scope);
-        current_scope->add_child(new_scope);
-        current_scope = new_scope;
-    }
 
-    stmt_list '}' {
-        current_scope = current_scope->parent;
-    }
+main_block
+    : MAIN '(' ')' '{' stmt_list '}'
     ;
 
 stmt_list
     : /* gol */
     | stmt_list stmt
     ;
-    
+
 stmt
     : assignment ';'
     | if_stmt
@@ -159,15 +137,17 @@ stmt
     | RETURN expr ';'
     ;
 
+opt_declarations 
+    : /* nik */
+    | declarations
+
 declarations
-    : declarations declaration
-    | /* gol */
+    : declaration
+    | declarations declaration
     ;
 
 declaration
-    : type IDENT ';' { 
-        current_scope->add_variable(var_data($2, "", ""));
-    }   
+    : type IDENT ';'
     ;
 
 assignment
@@ -254,6 +234,7 @@ literal
 %%
 
 int main(int argc, const char* argv[]) {
+    yylineno = 1;
     if(argc < 2){
        std::cout <<"Please provide a path to the file you want to compile"; 
         return 0;
@@ -266,6 +247,4 @@ int main(int argc, const char* argv[]) {
     yyin=fopen(argv[1],"r");
     yyparse();
     scope_node::print(root); 
-
-    delete root; 
 }

@@ -4,7 +4,7 @@
 ifeq ($(USER),"andrei")
 	COMPILER=g++-12
 else
-	COMPILER=g++
+	COMPILER=g++-12
 endif
 
 FILE=limbaj

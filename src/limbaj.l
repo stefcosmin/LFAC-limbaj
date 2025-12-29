@@ -13,6 +13,7 @@ extern int yylineno;
 
 
 %option noyywrap 
+%option yylineno
 %%
 "/*" {BEGIN comment;}
 <comment>"*/" {BEGIN 0;}

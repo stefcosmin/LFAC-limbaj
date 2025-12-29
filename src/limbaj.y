@@ -97,7 +97,7 @@ function_decl
 // acts more or less like an alias
 local_decls
     : /* gol */
-    | opt_declarations ';'
+    | declarations
     ;
 
 // acts more or less like an alias
@@ -121,6 +121,7 @@ type
     | STRING
     | BOOL
     | IDENT
+    | VOID
     ;
 
 main_block
@@ -140,9 +141,6 @@ stmt
     | RETURN expr ';'
     ;
 
-opt_declarations 
-    : /* nik */
-    | declarations
 
 declarations
     : declaration
@@ -245,7 +243,7 @@ int main(int argc, const char* argv[]) {
     yyin=fopen(argv[1],"r");
     yyparse();
     scope_node::print(root); 
-    
+
      if (error_count == 0) {
          cout << ">> The program is correct!" << endl;
      } else {

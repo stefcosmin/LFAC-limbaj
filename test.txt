@@ -1,9 +1,17 @@
 int a;
 int b;
-int sum(int x, int y){
- return x+y;}
-void sum(int x, int y){
-  int a;
- Print(x-y);}
+int sum(int x, int y)
+{
+ return x+y;
+}
 
-main(){}
+void sum(int x, int y)
+{
+int a;
+ Print(x-y);
+}
+
+main()
+{
+  
+}

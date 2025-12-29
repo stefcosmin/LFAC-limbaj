@@ -159,6 +159,11 @@ stmt
     | RETURN expr ';'
     ;
 
+declarations
+    : declarations declaration
+    | /* gol */
+    ;
+
 declaration
     : type IDENT ';' { 
         current_scope->add_variable(var_data($2, "", ""));

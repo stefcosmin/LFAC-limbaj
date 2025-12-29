@@ -41,7 +41,7 @@ scope_node* current_scope = root;
 %token <sval> IDENT
 %token INT_LIT FLOAT_LIT STRING_LIT BOOL_LIT
 %token ASSIGN
-%token ARITHOP LOGICOP RELOP
+%token LOGICOP RELOP
 
 /* Precedenta operatorilor */
 %left LOGICOP

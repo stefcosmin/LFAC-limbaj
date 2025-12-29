@@ -78,9 +78,10 @@ extern int yylineno;
 }
 
 
-"+"|"-"|"*"|"/" { 
-    return ARITHOP; //operatii aritmetice
-}
+"+" {return '+';}
+"-" {return '-';}
+"*" {return '*';}
+"/" {return '/';}
 
 
 "=" { return ASSIGN; }

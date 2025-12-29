@@ -80,6 +80,11 @@ struct func_data{
    std::unordered_map<std::string, var_data> parameters;
     
    func_data() = default;
+   // trebuie updatat ca sa fie adaugati si parametri. Dar mai tz
+   func_data(const std::string_view ret, const std::string_view name0)
+       :return_type(name_to_type(ret)), name(name0)
+   {
+   }
    std::string parameter_str() const {
         std::string result;
         for(const auto& [key, value] : parameters){

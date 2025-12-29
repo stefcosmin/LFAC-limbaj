@@ -27,10 +27,15 @@ typedef ScopeNodeType SNType;
 
 class scope_node{
     public:
-        scope_node(SNType type0, const std::string& name0)
-            :type(type0), name(name0)
+        scope_node(SNType type0, const std::string& name0, scope_node* parent0 = nullptr)
+            :type(type0), name(name0), parent(parent0)
         {
             std::cout << "Scope node\n";
+        }
+        ~scope_node() {
+            for(scope_node* child : children) {
+                delete child;
+            }
         }
         bool variable_exists(const std::string_view name) const;
 
@@ -50,7 +55,7 @@ class scope_node{
             return sntype_names[(int)type];
         }
         static void print(scope_node* n, int level = 0){
-           std::cout << tab(level) << "Type name: " << n->type_name() << "Scope name: " << n->name << "\n";
+           std::cout << tab(level) << "Type name: " << n->type_name() << " Scope name: " << n->name << "\n";
            if(n->var_map.size()) {
                std::cout << tab(level) << "Variables: \n";
                for(const auto& [key, value] : n->var_map){
@@ -64,11 +69,14 @@ class scope_node{
                    std::cout << tab(level + 1)  << value.sprint() << '\n';
                }
            }
+           for(scope_node* child : n->children) {
+               print(child, level + 1);
+           }
         }
         static std::string tab(int n){
             return std::string (n, '\t');
         }
-    private:
+    
         SNType type;
         std::string name;
         scope_node* parent;

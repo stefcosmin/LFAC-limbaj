@@ -22,7 +22,6 @@ void yyerror(const char* s) {
 auto root = new scope_node(SNType::DEFAULT, "global");
 scope_node* current_scope = root;
 
-
 %}
 
 /* Tipurile posibile pentru yylval */
@@ -63,10 +62,15 @@ global_decls
 
 class_decl
     : CLASS IDENT '{' { 
-        auto new_scope = new scope_node(SNType::CLASS, $2);
+        cout << "ENTER scope: " << $2 << endl;
+        auto new_scope = new scope_node(SNType::CLASS, $2, current_scope);
         current_scope->add_child(new_scope);
+        current_scope = new_scope;
         } 
-       class_body '}' ';' 
+       class_body '}' 
+       ';' {
+        current_scope = current_scope->parent;
+        }
     ;
 
 class_body
@@ -80,13 +84,28 @@ field_decl
     ;
 
 method_decl
-    : type IDENT '(' param_list ')' '{' stmt_list '}'
+    : type IDENT '(' param_list ')' '{'  {
+    auto new_scope = new scope_node(SNType::FUNCTION, $2, current_scope);
+    current_scope->add_child(new_scope);
+    current_scope = new_scope;
+    }
+    stmt_list '}' {
+        current_scope = current_scope->parent;
+    }
     ;
 
 function_decl
-    : type IDENT '(' param_list ')' '{' local_decls stmt_list '}'
-    ;
-
+    : type IDENT '(' param_list ')' {
+// aici e gresit, trebuie $1 pt primul argument
+    current_scope->add_function(func_data($2, $2));
+    auto new_scope = new scope_node(SNType::FUNCTION, $2, current_scope);
+    current_scope->add_child(new_scope);
+    current_scope = new_scope;
+     }
+     '{' local_decls stmt_list '}' {
+    current_scope = current_scope->parent;
+    }
+    
 local_decls
     : /* gol */
     | local_decls declarations ';'
@@ -96,7 +115,8 @@ param_list
     : /* gol */
     | param_list_nonempty declarations ';'
     ;
-
+    
+    
 param_list_nonempty
     : param
     | param ',' param_list_nonempty
@@ -113,16 +133,24 @@ type
     | BOOL
     | IDENT
     ;
+    
+   main_block
+    : MAIN '(' ')' '{' {
+        auto new_scope = new scope_node(SNType::FUNCTION, "main", current_scope);
+        current_scope->add_child(new_scope);
+        current_scope = new_scope;
+    }
 
-main_block
-    : MAIN '(' ')' '{' stmt_list '}'
+    stmt_list '}' {
+        current_scope = current_scope->parent;
+    }
     ;
 
 stmt_list
     : /* gol */
     | stmt_list stmt
     ;
-
+    
 stmt
     : assignment ';'
     | if_stmt
@@ -131,13 +159,10 @@ stmt
     | RETURN expr ';'
     ;
 
-declarations
-    : declarations declaration
-    | /* gol */
-    ;
-
 declaration
-    : type IDENT ';'
+    : type IDENT ';' { 
+        current_scope->add_variable(var_data($2, "", ""));
+    }   
     ;
 
 assignment
@@ -236,4 +261,6 @@ int main(int argc, const char* argv[]) {
     yyin=fopen(argv[1],"r");
     yyparse();
     scope_node::print(root); 
+
+    delete root; 
 }

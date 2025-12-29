@@ -87,7 +87,7 @@ field_decl
     ;
 
 method_decl
-    : type IDENT '(' param_list ')' '{' stmt_list '}'
+    : type IDENT '(' param_list ')' '{' local_decls stmt_list '}'
     ;
 
 function_decl

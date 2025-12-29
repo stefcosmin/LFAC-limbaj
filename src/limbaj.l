@@ -94,7 +94,7 @@ extern int yylineno;
 "." { return '.'; }
 
 
-[ \t\n]+ {  }
+[ \t]+ {  }
 
 
 . { return yytext[0]; }

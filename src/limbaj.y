@@ -6,7 +6,6 @@
 
 #include "src/scope_node.hpp"
 #include "src/log.hpp"
-
 using namespace std;
 
 /* Declaratii pentru lex */
@@ -27,6 +26,21 @@ auto root = new scope_node(SNType::DEFAULT, "global");
 scope_node* current_scope = root;
 
 
+
+void exit_scope() {
+    current_scope = current_scope->parent;
+}
+
+void enter_scope(SNType type, const char* name){
+    auto new_scope = new scope_node(type, name, current_scope);
+    current_scope->add_child(new_scope);
+    current_scope = new_scope;
+}
+
+
+std::vector<var_data> recent_params;
+
+
 %}
 
 /* Tipurile posibile pentru yylval */
@@ -41,6 +55,7 @@ scope_node* current_scope = root;
 %token CLASS IF WHILE RETURN MAIN PRINT
 %token <sval> INT FLOAT STRING BOOL VOID 
 %token <sval> IDENT
+%type <sval> type
 %token INT_LIT FLOAT_LIT STRING_LIT BOOL_LIT
 %token ASSIGN
 %token LOGICOP RELOP
@@ -62,37 +77,54 @@ program
 global_decls
     : /* gol */
     | global_decls declaration { dsp::debug("Processing global declaration"); } 
-    | global_decls class_decl  { dsp::debug("Processing class declartions"); } 
+    | global_decls class_decl  { dsp::debug("Processing class declartion"); } 
     | global_decls function_decl { dsp::debug("Processing global function declaration"); } 
     ;
 
 class_decl
     : CLASS IDENT '{' { 
         dsp::debug("Entered class scope");
-
-        auto new_scope = new scope_node(SNType::CLASS, $2);
-        current_scope->add_child(new_scope);
+        enter_scope(SNType::CLASS, $2);
         } 
-       class_body '}' ';' 
+       class_body '}' ';' { exit_scope(); } 
     ;
 
 class_body
     : /* gol */
-    | class_body field_decl
     | class_body method_decl
+    | class_body field_decl
     ;
 
 field_decl
-    : type IDENT ';' { current_scope->add_variable(var_data($2, "", ""));}
+    : type IDENT ';' { current_scope->add_variable(var_data($1, $2, ""));}
     ;
 
 method_decl
-    : type IDENT '(' param_list ')' '{' local_decls stmt_list '}'
+    : type IDENT '(' param_list ')' { 
+        current_scope->add_func(func_data($1, $2, recent_params));
+        enter_scope(SNType::FUNCTION, $2);
+        recent_params.clear();
+    } 
+    '{' method_body '}' { exit_scope(); }
+    ;
+
+method_body 
+    : /* */
+    | method_body declaration
+    | method_body stmt
     ;
 
 function_decl
-    : type IDENT '(' param_list ')' '{' local_decls stmt_list '}'
+    : type IDENT '(' param_list ')' 
+    '{' func_body '}'
     ;
+
+func_body
+    : /* */
+    | func_body declaration
+    | func_body stmt
+    ;
+
 
 // acts more or less like an alias
 local_decls
@@ -112,20 +144,21 @@ param_list_nonempty
     ;
 
 param 
-    : type IDENT 
+    : type IDENT  { recent_params.emplace_back(var_data($1, $2, "")); } 
     ;
 
 type
-    : INT 
-    | FLOAT
-    | STRING
-    | BOOL
-    | IDENT
-    | VOID
+    : INT     { $$ = strdup("int"); }
+    | FLOAT   { $$ = strdup("float"); }
+    | STRING  { $$ = strdup("string"); }
+    | BOOL    { $$ = strdup("bool"); }
+    | VOID    { $$ = strdup("void"); } 
+    | IDENT   { $$ = strdup($1); }   /* tip definit de utilizator */
     ;
 
 main_block
-    : MAIN '(' ')' '{' stmt_list '}'
+    : MAIN '(' ')' '{' { enter_scope(SNType::FUNCTION, "MAIN"); }
+    func_body '}' { exit_scope();} 
     ;
 
 stmt_list
@@ -148,7 +181,8 @@ declarations
     ;
 
 declaration
-    : type IDENT ';'
+    : type IDENT ';' {current_scope->add_variable(var_data($1, $2, ""));}
+    | type IDENT ASSIGN expr ';' {current_scope->add_variable(var_data($1, $2, "<TODO: CALCULATE VALUE>"));}
     ;
 
 assignment

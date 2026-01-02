@@ -25,7 +25,7 @@ clean:
 	@rm -f $(TARGET)
 	@echo "--- Done!"
 gen:
-	@bison -d $(SRC_DIR)/$(FILE).y -Wcounterexamples
+	@bison -d $(SRC_DIR)/$(FILE).y 
 	@flex $(SRC_DIR)/$(FILE).l 
 debug: 
 	@echo "--- Building in debug..."

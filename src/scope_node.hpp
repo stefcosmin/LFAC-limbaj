@@ -48,6 +48,9 @@ class scope_node{
         void add_variable(const var_data& data){
             var_map[data.name] = data;
         }
+        void add_func(const func_data& data){
+            func_map[data.name] = data;
+        }
         void add_child(scope_node* node){
             children.emplace_back(node);
         } 

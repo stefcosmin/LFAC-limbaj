@@ -6,14 +6,33 @@ int sum(int x, int y)
  return x+y;
 }
 
+int a;
+int b;
+
 void sum(int x, int y)
 {
  Print(x-y);
 }
 
+class point{
+    int x;
+    int y;
+
+    float distance(int p1){
+        int new_x;
+        int new_y;
+
+    }
+};
+
 main()
 {
+int m = 1; 
+int n = 2;
 x=a-b;
 Print(a-b);
-Print(sum(x,b));
+Print(sum(a-b));
+
+int o;
+int p;
 }

@@ -3,12 +3,10 @@ class cat{
     int age;
     int weight;
     
-    void meow(){
+    void meow(int x){
         Print("Meow");
     }
 };
 
-int main(){
-    cat c;
-    c.meow();
+main(){
 }

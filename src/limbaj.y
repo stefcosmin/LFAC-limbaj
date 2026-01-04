@@ -5,6 +5,7 @@
 
 
 #include "src/scope_node.hpp"
+#include "src/type_codex.hpp"
 #include "src/log.hpp"
 using namespace std;
 
@@ -17,11 +18,12 @@ extern int yylineno;
 int error_count = 0;
 
 void yyerror(const char* s) {
-    cerr << "Eroare de sintaxa: " << s << " la linia " << yylineno << endl;
-    cerr<<"Eroare la tokenul:"<<yytext<<endl;
+    cerr << "Syntax error: " << s << " at line " << yylineno << endl;
+    cerr<<"Error at token:"<<yytext<<endl;
     error_count++;
 }
 
+type_codex cdx;
 auto root = new scope_node(SNType::DEFAULT, "global");
 scope_node* current_scope = root;
 
@@ -36,7 +38,6 @@ void enter_scope(SNType type, const char* name){
     current_scope->add_child(new_scope);
     current_scope = new_scope;
 }
-
 
 std::vector<var_data> recent_params;
 
@@ -85,51 +86,36 @@ class_decl
     : CLASS IDENT '{' { 
         dsp::debug("Entered class scope");
         enter_scope(SNType::CLASS, $2);
+        cdx.add($2, current_scope);
         } 
        class_body '}' ';' { exit_scope(); } 
     ;
 
 class_body
     : /* gol */
-    | class_body method_decl
-    | class_body field_decl
+    | class_body function_decl
+    | class_body declaration
     ;
 
-field_decl
-    : type IDENT ';' { current_scope->add_variable(var_data($1, $2, ""));}
-    ;
-
-method_decl
-    : type IDENT '(' param_list ')' { 
-        current_scope->add_func(func_data($1, $2, recent_params));
-        enter_scope(SNType::FUNCTION, $2);
-        recent_params.clear();
-    } 
-    '{' method_body '}' { exit_scope(); }
-    ;
-
-method_body 
-    : /* */
-    | method_body declaration
-    | method_body stmt
-    ;
 
 function_decl
-    : type IDENT '(' param_list ')' 
-    '{' func_body '}'
+    : type IDENT '(' param_list ')' {
+        auto type_id = cdx.type_id($1);
+        if(type_id == type_codex::invalid_t)
+            invalid_type_err($1);
+
+        current_scope->add_func(func_data(type_id, $2, recent_params));
+        enter_scope(SNType::FUNCTION, $2);
+        current_scope->add_variables(recent_params);
+        recent_params.clear();
+    }
+    '{' func_body '}' { exit_scope(); }
     ;
 
 func_body
     : /* */
     | func_body declaration
     | func_body stmt
-    ;
-
-
-// acts more or less like an alias
-local_decls
-    : /* gol */
-    | declarations
     ;
 
 // acts more or less like an alias
@@ -144,7 +130,13 @@ param_list_nonempty
     ;
 
 param 
-    : type IDENT  { recent_params.emplace_back(var_data($1, $2, "")); } 
+    : type IDENT  {  
+    auto type_id = cdx.type_id($1);
+    if(type_id == type_codex::invalid_t)
+        invalid_type_err($1);
+
+    recent_params.emplace_back(var_data(type_id, $2, "")); 
+    } 
     ;
 
 type
@@ -174,15 +166,21 @@ stmt
     | RETURN expr ';'
     ;
 
-
-declarations
-    : declaration
-    | declarations declaration
-    ;
-
 declaration
-    : type IDENT ';' {current_scope->add_variable(var_data($1, $2, ""));}
-    | type IDENT ASSIGN expr ';' {current_scope->add_variable(var_data($1, $2, "<TODO: CALCULATE VALUE>"));}
+    : type IDENT ';' {
+        auto type_id = cdx.type_id($1);
+        if(type_id == type_codex::invalid_t)
+            invalid_type_err($1);
+
+        current_scope->add_variable(var_data(type_id, $2, ""));
+    }
+    | type IDENT ASSIGN expr ';' {
+        auto type_id = cdx.type_id($1);
+        if(type_id == type_codex::invalid_t)
+            invalid_type_err($1);
+
+            current_scope->add_variable(var_data(type_id, $2, "<TODO: CALCULATE VALUE>"));
+    }
     ;
 
 assignment
@@ -276,7 +274,7 @@ int main(int argc, const char* argv[]) {
     }
     yyin=fopen(argv[1],"r");
     yyparse();
-    scope_node::print(root); 
+    dsp::print(root, cdx); 
 
      if (error_count == 0) {
          cout << ">> The program is correct!" << endl;

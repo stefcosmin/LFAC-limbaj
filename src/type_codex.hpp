@@ -71,7 +71,7 @@ class type_codex{
             :next_id(custom_t_id_start)
         {}
         void add(const std::string& name, scope_node* data){
-            if(class_exists(name)) {
+            if(class_exists(name) != invalid_t) {
                 std::string msg = "Redefinition of class '";
                 msg += name;
                 msg += "'";
@@ -79,6 +79,7 @@ class type_codex{
                 return;
             }
             table[name] = custom_type_data{next_id, data};
+            name_map[next_id] = name;
             next_id++;
         }
         uint16_t class_exists(const std::string& name) const {
@@ -98,6 +99,20 @@ class type_codex{
                 return id;
             }
             return invalid_t;
+        }
+        std::optional<custom_type_data> get(const std::string& type_name) const { 
+            auto it = table.find(type_name);
+            if(it != table.end()) {
+                return it->second;
+            }
+            return std::nullopt;
+        }
+        std::optional<custom_type_data> get_by_id(uint16_t id) const {
+            auto it = name_map.find(id);  
+            if(it != name_map.end()) {
+                return get(it->second);
+            }
+            return std::nullopt;
         }
         std::string_view type_name(uint16_t id) const { 
             if(id < (uint16_t)NType::COUNT){

@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <assert.h>
+#include <optional>
 
 #include "data.hpp"
 
@@ -30,15 +31,13 @@ class scope_node{
     public:
         scope_node(SNType type0, const std::string& name0, scope_node* parent0 = nullptr)
             :type(type0), name(name0), parent(parent0)
-        {
-            std::cout << "Scope node\n";
-        }
+        {}
         ~scope_node() {
             for(scope_node* child : children) {
                 delete child;
             }
         }
-        bool variable_exists(const std::string& name) const{
+        bool variable_exists_upstream(const std::string& name) const{
             const scope_node* current = this;
             while(current != nullptr){
                 auto it = current->var_map.find(name);
@@ -49,11 +48,22 @@ class scope_node{
             }
             return false;
         }
+        std::optional<var_data> get_variable_upstream(const std::string& name) const{
+            const scope_node* current = this;
+            while(current != nullptr){
+                auto it = current->var_map.find(name);
+                if (it != current->var_map.end()) {
+                    return it->second;
+                }
+                current = current->parent;
+            }
+            return std::nullopt;
+        }
 
         void add_func(const func_data& data){
             assert(type != SNType::FUNCTION &&
                 "LOGIC ERROR: A function symbol should only be added to class scopes or global scopes");
-            if(function_exists(data.name)) {
+            if(function_exists_upstream(data.name)) {
                 std::string msg = "Redefinition of function '";
                 msg += data.name;
                 msg += "'";
@@ -66,7 +76,7 @@ class scope_node{
             func_map[data.name] = data;
         }
         void add_variable(const var_data& data, bool custom_type = false){
-            if(custom_type == false && variable_exists(data.name)) {
+            if(custom_type == false && variable_exists_upstream(data.name)) {
                 std::string msg = "Redefinition of variable '";
                 msg += data.name;
                 msg += "'";
@@ -87,7 +97,7 @@ class scope_node{
         const std::string_view type_name() const{
             return sntype_names[(int)type];
         }
-        bool function_exists(const std::string& str) const {
+        bool function_exists_upstream(const std::string& str) const {
             const scope_node* current = this;
             while(current != nullptr){
                 auto it = current->func_map.find(str);
@@ -99,7 +109,20 @@ class scope_node{
             return false;
         }
 
-       
+        bool function_exists(const std::string& str) const {
+            auto it = func_map.find(str);
+            if (it != func_map.end()) {
+                return true;
+            }
+            return false;
+        }
+        bool variable_exists(const std::string& str) const {
+            auto it = var_map.find(str);
+            if (it != var_map.end()) {
+                return true;
+            }
+            return false;
+        }
     
         SNType type;
         std::string name;

@@ -19,7 +19,7 @@ extern int yylineno;
 <comment>"*/" {BEGIN 0;}
 <comment>.|\n ;
 \n { 
-    yylineno++;
+    // yylineno++;
 }
 
 "class"     { return CLASS; }

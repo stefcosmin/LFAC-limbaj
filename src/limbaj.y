@@ -6,6 +6,8 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include <optional>
+#include <sstream>
 
 #include "src/scope_node.hpp"
 #include "src/type_codex.hpp"
@@ -19,10 +21,11 @@ extern char* yytext;
 extern int yylineno;
 
 int error_count = 0;
+std::stringstream err_stream;
 
 void yyerror(const char* s) {
-    cerr << "Syntax error: " << s << " at line " << yylineno << endl;
-    cerr<<"Error at token:"<<yytext<<endl;
+    err_stream << "[ " << dsp::sprint_colored("ERROR", dsp::Color::RED) << " ] " << s << " at line " << yylineno << '\n';
+    // cerr<<"Error at token:"<<yytext<<endl;
     error_count++;
 }
 
@@ -57,7 +60,7 @@ std::vector<var_data> recent_params;
 }
 
 
-%error-verbose
+// %error-verbose
 /* Tokenii primiti de la lex */
 %token CLASS IF WHILE RETURN MAIN PRINT
 %token <sval> INT FLOAT STRING BOOL VOID 
@@ -200,12 +203,12 @@ declaration
         if(type_id == type_codex::invalid_t)
             invalid_type_err($1);
 
-            current_scope->add_variable(var_data(type_id, $2, "<TODO: CALCULATE VALUE>"));
+        current_scope->add_variable(var_data(type_id, $2, "<TODO: CALCULATE VALUE>"));
     }
     ;
 
 assignment
-    : lvalue ASSIGN expr
+    : lvalue ASSIGN expr 
     {
         $$ = new ASTNode(
             ASTKind::ASSIGN,
@@ -220,8 +223,34 @@ assignment
 
 
 lvalue
-    : IDENT
-    | IDENT '.' IDENT
+    : IDENT {
+        if(current_scope->variable_exists_upstream($1) == false) {
+            std::string msg = "Attempted to reference a non existent variable '";
+            msg += $1;
+            msg += "'";
+            yyerror(msg.c_str());
+        }
+    }
+    | IDENT '.' IDENT {
+        auto var = current_scope->get_variable_upstream($1); 
+        if(var.has_value() == false){
+            yyerror("Attempted to reference a non existent variable");
+        }else{
+            auto val = var.value();
+            auto type_opt = cdx.get_by_id(val.type_id);
+            if(type_opt.has_value() == false) {
+            }
+            else{ 
+                auto type = type_opt.value();
+                if(type.details->variable_exists($3) == false) {
+                    std::string msg = "Attempted to reference a non existent member variable '";
+                    msg += $3;
+                    msg += "'";
+                    yyerror(msg.c_str());
+                }
+            }
+        } 
+    }
     ;
 
 if_stmt
@@ -334,8 +363,34 @@ atom
 
 /* Apel de functie ca instructiune separata */
 func_call_stmt
-    : IDENT '(' arg_list ')' ';'
-    | IDENT '.' IDENT '(' arg_list ')' ';'
+    : IDENT '(' arg_list ')' ';' {
+        if(current_scope->function_exists_upstream($1) == false) {
+            std::string msg = "Attempted to reference a non existent function '";
+            msg += $1;
+            msg += "'";
+            yyerror(msg.c_str());
+        } 
+    }
+    | IDENT '.' IDENT '(' arg_list ')' ';' {
+        auto var = current_scope->get_variable_upstream($1); 
+        if(var.has_value() == false){
+            yyerror("Attempted to reference a non existent variable");
+        }else{
+            auto val = var.value();
+            auto type_opt = cdx.get_by_id(val.type_id);
+            if(type_opt.has_value() == false) {
+            }
+            else{ 
+                auto type = type_opt.value();
+                if(type.details->function_exists($3) == false) {
+                    std::string msg = "Attempted to reference a non existent member variable '";
+                    msg += $3;
+                    msg += "'";
+                    yyerror(msg.c_str());
+                }
+            }
+        } 
+    }
     ;
 
 /* Lista de argumente */
@@ -374,5 +429,9 @@ int main(int argc, const char* argv[]) {
      } else {
          cout << ">> Returned " << error_count << " errors." << endl;
      }
-    
+    std::cout << "\n";
+    dsp::print(cdx);
+    std::cout << "\n";
+    std::cout << err_stream.str();
+    pclose(yyin);    
 }

@@ -6,7 +6,7 @@ int sum(int x, int y)
  return x+y;
 }
 
-int a;
+int a = 1;
 int b;
 
 void sum(int x, int y)
@@ -18,25 +18,34 @@ class point{
     int x;
     int y;
 
-    float distance(int p1, int p1){
+    float distance_from_origin(){
         int new_x;
         int new_y;
-
+        
+        return x * x + y * y;
     }
 };
 
 main()
 {
-int m = 1; 
-int n = 2;
-int n = 2;
-point3d p3;
-point2d p2;
-point legit;
-x=a-b;
-Print(a-b);
-Print(sum(a-b));
+    floppa = 0;
+    int m = 1; 
+    int n = 2;
+    int n = 2;
 
-int o;
-int p;
+    point3d p3;
+    point2d p2;
+    point legit;
+    legit.dot_product();
+    legit.do_a_backflip(3,4);
+    int dist = legit.distance_from_orgin();
+
+    int point_sum;
+    int point_sum = legit.z +legit.x;
+
+    Print(a-b);
+    Print(sum(a-b));
+
+    int o;
+    int p;
 }

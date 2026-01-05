@@ -22,5 +22,11 @@ struct constexpr_map{
         [[nodiscard]] constexpr auto end() const noexcept {
                 return std::end(data);
         }
+        [[nodiscard]] constexpr bool exists(const Key& key) const noexcept {
+                auto it = std::find_if(std::begin(data), std::end(data), [key](const auto& pair) {
+                        return pair.first == key;
+                });
 
+                return it != std::end(data);
+        }
 };

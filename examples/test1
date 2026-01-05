@@ -18,7 +18,7 @@ class point{
     int x;
     int y;
 
-    float distance(int p1){
+    float distance(int p1, int p1){
         int new_x;
         int new_y;
 
@@ -29,6 +29,10 @@ main()
 {
 int m = 1; 
 int n = 2;
+int n = 2;
+point3d p3;
+point2d p2;
+point legit;
 x=a-b;
 Print(a-b);
 Print(sum(a-b));

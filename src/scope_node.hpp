@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -37,19 +38,48 @@ class scope_node{
                 delete child;
             }
         }
-        bool variable_exists(const std::string_view name) const;
+        bool variable_exists(const std::string& name) const{
+            const scope_node* current = this;
+            while(current != nullptr){
+                auto it = current->var_map.find(name);
+                if (it != current->var_map.end()) {
+                    return true;
+                }
+                current = current->parent;
+            }
+            return false;
+        }
 
-        void add_function(const func_data& data){
-            assert(type != SNType::DEFAULT &&
+        void add_func(const func_data& data){
+            assert(type != SNType::FUNCTION &&
                 "LOGIC ERROR: A function symbol should only be added to class scopes or global scopes");
+            if(function_exists(data.name)) {
+                std::string msg = "Redefinition of function '";
+                msg += data.name;
+                msg += "'";
+                yyerror(msg.c_str());
 
+                return;
+            }
+
+            std::cout << "Adding function '" << data.name << "'\n";
             func_map[data.name] = data;
         }
-        void add_variable(const var_data& data){
+        void add_variable(const var_data& data, bool custom_type = false){
+            if(custom_type == false && variable_exists(data.name)) {
+                std::string msg = "Redefinition of variable '";
+                msg += data.name;
+                msg += "'";
+                yyerror(msg.c_str());
+
+                return;
+            }
             var_map[data.name] = data;
         }
-        void add_func(const func_data& data){
-            func_map[data.name] = data;
+        void add_variables(const std::vector<var_data>& list){
+            for(const auto& data : list){
+                add_variable(data);
+            }
         }
         void add_child(scope_node* node){
             children.emplace_back(node);
@@ -57,28 +87,19 @@ class scope_node{
         const std::string_view type_name() const{
             return sntype_names[(int)type];
         }
-        static void print(scope_node* n, int level = 0){
-           std::cout << tab(level) << "Type name: " << n->type_name() << " Scope name: " << n->name << "\n";
-           if(n->var_map.size()) {
-               std::cout << tab(level) << "Variables: \n";
-               for(const auto& [key, value] : n->var_map){
-                   std::cout << tab(level + 1) << value.sprint() << '\n';
-               }
-           }
+        bool function_exists(const std::string& str) const {
+            const scope_node* current = this;
+            while(current != nullptr){
+                auto it = current->func_map.find(str);
+                if (it != current->func_map.end()) {
+                    return true;
+                }
+                current = current->parent;
+            }
+            return false;
+        }
 
-           if(n->func_map.size()){
-               std::cout << tab(level) << "Functions: \n";
-               for(const auto& [key, value] : n->func_map){
-                   std::cout << tab(level + 1)  << value.sprint() << '\n';
-               }
-           }
-           for(scope_node* child : n->children) {
-               print(child, level + 1);
-           }
-        }
-        static std::string tab(int n){
-            return std::string (n, '\t');
-        }
+       
     
         SNType type;
         std::string name;

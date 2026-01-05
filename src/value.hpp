@@ -1,17 +1,17 @@
 #pragma once
-#include "data.hpp"
+#include "type_codex.hpp"
 #include <string>
 #include <iostream>
 
 struct Value
 {
-  VarType type = VarType::INVALID;
+  NType type = NType::INVALID;
   int i;
   float f;
   bool b;
   std::string s;
 
-  static Value makeDefault(VarType t)
+  static Value makeDefault(NType t)
   {
     Value v;
     v.type = t;
@@ -22,16 +22,16 @@ struct Value
   {
     switch (type)
     {
-    case VarType::INT:
+    case NType::INT:
       std::cout << i;
       break;
-    case VarType::FLOAT:
+    case NType::FLOAT:
       std::cout << f;
       break;
-    case VarType::BOOL:
+    case NType::BOOL:
       std::cout << (b ? "true" : "false");
       break;
-    case VarType::STRING:
+    case NType::STRING:
       std::cout << s;
       break;
     default:

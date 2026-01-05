@@ -1,3 +1,7 @@
+%code requires {
+    #include "src/ast.hpp"
+}
+
 %{
 #include <iostream>
 #include <cstdlib>
@@ -6,6 +10,7 @@
 
 #include "src/scope_node.hpp"
 #include "src/log.hpp"
+
 using namespace std;
 
 /* Declaratii pentru lex */
@@ -49,16 +54,28 @@ std::vector<var_data> recent_params;
     float fval;
     bool bval;
     char* sval;
+    ASTNode* ast;
 }
+
+
+
 %error-verbose
 /* Tokenii primiti de la lex */
 %token CLASS IF WHILE RETURN MAIN PRINT
 %token <sval> INT FLOAT STRING BOOL VOID 
 %token <sval> IDENT
+%type <sval> lvalue
 %type <sval> type
-%token INT_LIT FLOAT_LIT STRING_LIT BOOL_LIT
+%token <ival> INT_LIT
+%token <fval> FLOAT_LIT
+%token <sval> STRING_LIT
+%token <bval> BOOL_LIT
 %token ASSIGN
 %token LOGICOP RELOP
+
+
+%type <ast> expr logic_expr rel_expr add_expr mul_expr atom assignment stmt literal
+
 
 /* Precedenta operatorilor */
 %left LOGICOP
@@ -167,12 +184,17 @@ stmt_list
     ;
 
 stmt
-    : assignment ';'
-    | if_stmt
-    | while_stmt
-    | func_call_stmt
-    | RETURN expr ';'
+    : assignment ';'        { $$ = $1; }
+    | PRINT '(' expr ')' ';'{
+        $$ = new ASTNode(ASTKind::PRINT, "Print",
+            std::unique_ptr<ASTNode>($3), nullptr, VarType::VOID);
+    }
+    | if_stmt               { $$ = nullptr; }
+    | while_stmt            { $$ = nullptr; }
+    | RETURN expr ';'       { $$ = nullptr; }
+    | func_call_stmt        { $$ = nullptr; }
     ;
+
 
 
 declarations
@@ -187,7 +209,17 @@ declaration
 
 assignment
     : lvalue ASSIGN expr
+    {
+        $$ = new ASTNode(
+            ASTKind::ASSIGN,
+            ":=",
+            std::make_unique<ASTNode>(ASTKind::LEAF, $1, VarType::INVALID),
+            std::unique_ptr<ASTNode>($3),
+            $3->expr_type
+        );
+    }
     ;
+
 
 
 lvalue
@@ -210,41 +242,103 @@ expr
 
 logic_expr
     : logic_expr LOGICOP rel_expr
-    | rel_expr
+    {
+        $$ = new ASTNode(
+            ASTKind::BINARY,
+            yytext,
+            std::unique_ptr<ASTNode>($1),
+            std::unique_ptr<ASTNode>($3),
+            VarType::BOOL
+        );
+    }
+    | rel_expr { $$ = $1; }
     ;
+
 
 rel_expr
     : rel_expr RELOP add_expr
-    | add_expr
+    {
+        $$ = new ASTNode(
+            ASTKind::BINARY,
+            yytext,
+            std::unique_ptr<ASTNode>($1),
+            std::unique_ptr<ASTNode>($3),
+            VarType::BOOL
+        );
+    }
+    | add_expr { $$ = $1; }
     ;
+
 
 add_expr
     : add_expr '+' mul_expr
+    {
+        $$ = new ASTNode(
+            ASTKind::BINARY,
+            "+",
+            std::unique_ptr<ASTNode>($1),
+            std::unique_ptr<ASTNode>($3),
+            $1->expr_type
+        );
+    }
     | add_expr '-' mul_expr
-    | mul_expr
+    {
+        $$ = new ASTNode(
+            ASTKind::BINARY,
+            "-",
+            std::unique_ptr<ASTNode>($1),
+            std::unique_ptr<ASTNode>($3),
+            $1->expr_type
+        );
+    }
+    | mul_expr { $$ = $1; }
     ;
+
 
 mul_expr
     : mul_expr '*' atom
+    {
+        $$ = new ASTNode(
+            ASTKind::BINARY,
+            "*",
+            std::unique_ptr<ASTNode>($1),
+            std::unique_ptr<ASTNode>($3),
+            $1->expr_type
+        );
+    }
     | mul_expr '/' atom
-    | atom
+    {
+        $$ = new ASTNode(
+            ASTKind::BINARY,
+            "/",
+            std::unique_ptr<ASTNode>($1),
+            std::unique_ptr<ASTNode>($3),
+            $1->expr_type
+        );
+    }
+    | atom { $$ = $1; }
     ;
+
 
 /* Atomii pot fi literal, lvalue sau apel de functie */
 atom
-    : '(' expr ')'
+    : '(' expr ')' { $$ = $2; }
     | literal
-    | IDENT '(' arg_list ')'             /* apel functie global */
-    | IDENT '.' IDENT '(' arg_list ')'   /* apel metoda obiect */
-    | PRINT '(' expr ')'                 /* functie predefinita */
-    | lvalue                             /* orice alt IDENT -> lvalue */
+    | IDENT '(' arg_list ')'  {
+    $$ = new ASTNode(ASTKind::LEAF, "OTHER", VarType::INVALID);
+}           /* apel functie global */
+    | IDENT '.' IDENT '(' arg_list ')' {
+    $$ = new ASTNode(ASTKind::LEAF, "OTHER", VarType::INVALID);
+}  /* apel metoda obiect */
+    | lvalue  {
+        $$ = new ASTNode(ASTKind::LEAF, $1, VarType::INVALID);
+      }                           /* orice alt IDENT -> lvalue */
     ;
 
 /* Apel de functie ca instructiune separata */
 func_call_stmt
     : IDENT '(' arg_list ')' ';'
     | IDENT '.' IDENT '(' arg_list ')' ';'
-    | PRINT '(' expr ')' ';'
     ;
 
 /* Lista de argumente */
@@ -260,11 +354,16 @@ arg_list_nonempty
 
 /* Literali */
 literal
-    : INT_LIT
-    | FLOAT_LIT
-    | STRING_LIT
-    | BOOL_LIT
+    : INT_LIT    { $$ = new ASTNode(ASTKind::LEAF, std::to_string($1), VarType::INT); }
+    | FLOAT_LIT  { $$ = new ASTNode(ASTKind::LEAF, std::to_string($1), VarType::FLOAT); }
+    | STRING_LIT { $$ = new ASTNode(ASTKind::LEAF, $1, VarType::STRING); }
+    | BOOL_LIT   { $$ = new ASTNode(ASTKind::LEAF, $1 ? "true" : "false", VarType::BOOL); }
     ;
+
+
+
+
+
 
 %%
 

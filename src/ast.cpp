@@ -10,13 +10,13 @@ static Value lookup_variable(scope_node *scope, const std::string &name)
       const var_data &v = it->second;
       Value val;
       val.type = (NType)v.type_id;
-      if (equal(v.type_id,NType::INT))
+      if (equal(v.type_id, NType::INT))
         val.i = std::stoi(v.value);
-      if (equal(v.type_id,NType::FLOAT))
+      if (equal(v.type_id, NType::FLOAT))
         val.f = std::stof(v.value);
-      if (equal(v.type_id,NType::BOOL))
+      if (equal(v.type_id, NType::BOOL))
         val.b = (v.value == "true");
-      if (equal(v.type_id,NType::STRING))
+      if (equal(v.type_id, NType::STRING))
         val.s = v.value;
       return val;
     }
@@ -28,43 +28,43 @@ static Value lookup_variable(scope_node *scope, const std::string &name)
 Value ASTNode::evaluate(scope_node *scope)
 {
 
+  Value result;
+
   /* LEAF */
   if (kind == ASTKind::LEAF)
   {
     if (expr_type == NType::INT)
     {
-      Value v;
-      v.type = NType::INT;
-      v.i = std::stoi(label);
-      return v;
+      result.type = NType::INT;
+      result.i = std::stoi(label);
     }
-    if (expr_type == NType::FLOAT)
+    else if (expr_type == NType::FLOAT)
     {
-      Value v;
-      v.type = NType::FLOAT;
-      v.f = std::stof(label);
-      return v;
+      result.type = NType::FLOAT;
+      result.f = std::stof(label);
     }
-    if (expr_type == NType::BOOL)
+    else if (expr_type == NType::BOOL)
     {
-      Value v;
-      v.type = NType::BOOL;
-      v.b = (label == "true");
-      return v;
+      result.type = NType::BOOL;
+      result.b = (label == "true");
     }
-    if (expr_type == NType::STRING)
+    else if (expr_type == NType::STRING)
     {
-      Value v;
-      v.type = NType::STRING;
-      v.s = label;
-      return v;
+      result.type = NType::STRING;
+      result.s = label;
+    }
+    else
+    {
+      result = lookup_variable(scope, label);
     }
 
-    /* identifier */
-    return lookup_variable(scope, label);
+    std::cout << "[EVAL] " << to_string()
+              << " => " << value_to_string(result) << '\n';
+
+    return result;
   }
 
-  /* ASSIGN */
+  /* ASSIGNMENT */
   if (kind == ASTKind::ASSIGN)
   {
     Value rhs = right->evaluate(scope);
@@ -75,64 +75,70 @@ Value ASTNode::evaluate(scope_node *scope)
       auto it = s->var_map.find(left->label);
       if (it != s->var_map.end())
       {
-        it->second.value =
-            (rhs.type == NType::INT ? std::to_string(rhs.i) : rhs.type == NType::FLOAT ? std::to_string(rhs.f)
-                                                            : rhs.type == NType::BOOL    ? (rhs.b ? "true" : "false")
-                                                                                           : rhs.s);
-        return rhs;
+        it->second.value = value_to_string(rhs);
+        break;
       }
       s = s->parent;
     }
+
+    std::cout << "[EVAL] " << to_string()
+              << " => " << value_to_string(rhs) << '\n';
+
+    return rhs;
   }
 
   /* PRINT */
   if (kind == ASTKind::PRINT)
   {
     Value v = left->evaluate(scope);
+    std::cout << "[PRINT] ";
     v.print();
     std::cout << '\n';
+
+    std::cout << "[EVAL] " << to_string()
+              << " => " << value_to_string(v) << '\n';
+
     return v;
   }
 
-  /* BINARY */
+  /* BINARY OPERATOR */
   Value l = left->evaluate(scope);
   Value r = right->evaluate(scope);
 
   if (label == "+")
   {
+    result.type = l.type;
     if (l.type == NType::INT)
-    {
-      Value v;
-      v.type = NType::INT;
-      v.i = l.i + r.i;
-      return v;
-    }
+      result.i = l.i + r.i;
     if (l.type == NType::FLOAT)
-    {
-      Value v;
-      v.type = NType::FLOAT;
-      v.f = l.f + r.f;
-      return v;
-    }
+      result.f = l.f + r.f;
   }
-
-  if (label == "*")
+  else if (label == "*")
   {
+    result.type = l.type;
     if (l.type == NType::INT)
-    {
-      Value v;
-      v.type = NType::INT;
-      v.i = l.i * r.i;
-      return v;
-    }
+      result.i = l.i * r.i;
     if (l.type == NType::FLOAT)
-    {
-      Value v;
-      v.type = NType::FLOAT;
-      v.f = l.f * r.f;
-      return v;
-    }
+      result.f = l.f * r.f;
   }
 
-  return Value::makeDefault(expr_type);
+  std::cout << "[EVAL] " << to_string()
+            << " => " << value_to_string(result) << '\n';
+
+  return result;
+}
+
+std::string ASTNode::to_string() const
+{
+  if (kind == ASTKind::LEAF)
+    return label;
+
+  if (kind == ASTKind::ASSIGN)
+    return left->to_string() + " := " + right->to_string();
+
+  if (kind == ASTKind::PRINT)
+    return "Print(" + left->to_string() + ")";
+
+  // binary operator
+  return "(" + left->to_string() + " " + label + " " + right->to_string() + ")";
 }

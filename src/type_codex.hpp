@@ -5,23 +5,26 @@
 #include <limits>
 #include "constexpr_map.hpp"
 #include "scope_node.hpp"
-extern void yyerror(const char* s);
+extern void yyerror(const char *s);
 
-//Native Type
-enum class NType : uint16_t{
+// Native Type
+enum class NType : uint16_t
+{
     INT,
     BOOL,
     STRING,
     FLOAT,
-    VOID, 
+    VOID,
     COUNT,
     INVALID
 };
 
-constexpr bool equal(uint16_t type_id, NType ntype) {
+constexpr bool equal(uint16_t type_id, NType ntype)
+{
     return type_id == (uint16_t)ntype;
 }
-enum VarType{
+enum VarType
+{
     NATIVE,
     CUSTOM,
     INVALID
@@ -41,98 +44,121 @@ constexpr constexpr_map<std::string_view, NType, (size_t)NType::COUNT> var_map =
     std::make_pair("float", NType::FLOAT),
     std::make_pair("void", NType::VOID),
 };
-static NType name_to_type(const std::string_view view){
+static NType name_to_type(const std::string_view view)
+{
     auto it = var_map.at(view);
-    if(it == var_map.end()){
+    if (it == var_map.end())
+    {
         std::string msg = std::string("Invalid variable type '") + std::string(view) + std::string("'");
         yyerror(msg.c_str());
         return NType::INVALID;
     }
     return it->second;
 }
-static void invalid_type_err(const std::string_view name){
+static void invalid_type_err(const std::string_view name)
+{
     std::string msg = "Unrecognized type '";
     msg += name;
     msg += "'";
     yyerror(msg.c_str());
 }
-struct custom_type_data{
+struct custom_type_data
+{
     uint16_t id;
-    scope_node* details;
+    scope_node *details;
 };
-class type_codex{
-    public:
-        static constexpr uint16_t invalid_t = std::numeric_limits<uint16_t>::max();
-        static constexpr std::string_view invalid_t_name = "INVALID";
-        static constexpr uint16_t custom_t_id_start = 10;
-    public:
-        type_codex()
-            // all class IDs start from 10
-            :next_id(custom_t_id_start)
-        {}
-        void add(const std::string& name, scope_node* data){
-            if(class_exists(name) != invalid_t) {
-                std::string msg = "Redefinition of class '";
-                msg += name;
-                msg += "'";
-                yyerror(msg.c_str());
-                return;
-            }
-            table[name] = custom_type_data{next_id, data};
-            name_map[next_id] = name;
-            next_id++;
+class type_codex
+{
+public:
+    static constexpr uint16_t invalid_t = std::numeric_limits<uint16_t>::max();
+    static constexpr std::string_view invalid_t_name = "INVALID";
+    static constexpr uint16_t custom_t_id_start = 10;
+
+public:
+    type_codex()
+        // all class IDs start from 10
+        : next_id(custom_t_id_start)
+    {
+    }
+    void add(const std::string &name, scope_node *data)
+    {
+        if (class_exists(name) != invalid_t)
+        {
+            std::string msg = "Redefinition of class '";
+            msg += name;
+            msg += "'";
+            yyerror(msg.c_str());
+            return;
         }
-        uint16_t class_exists(const std::string& name) const {
-            auto it = table.find(name);
-            if(it != table.end()) {
-                return it->second.id;
-            }
-            return invalid_t;
+        table[name] = custom_type_data{next_id, data};
+        name_map[next_id] = name;
+        next_id++;
+    }
+    uint16_t class_exists(const std::string &name) const
+    {
+        auto it = table.find(name);
+        if (it != table.end())
+        {
+            return it->second.id;
         }
-        uint16_t type_id(const std::string& type_name)const {
-            auto id = class_exists(type_name);
-            if(id != invalid_t){
-                return id;
-            }
-            id = native_exists(type_name);
-            if(id != invalid_t) {
-                return id;
-            }
-            return invalid_t;
+        return invalid_t;
+    }
+    uint16_t type_id(const std::string &type_name) const
+    {
+        auto id = class_exists(type_name);
+        if (id != invalid_t)
+        {
+            return id;
         }
-        std::optional<custom_type_data> get(const std::string& type_name) const { 
-            auto it = table.find(type_name);
-            if(it != table.end()) {
-                return it->second;
-            }
-            return std::nullopt;
+        id = native_exists(type_name);
+        if (id != invalid_t)
+        {
+            return id;
         }
-        std::optional<custom_type_data> get_by_id(uint16_t id) const {
-            auto it = name_map.find(id);  
-            if(it != name_map.end()) {
-                return get(it->second);
-            }
-            return std::nullopt;
+        return invalid_t;
+    }
+    std::optional<custom_type_data> get(const std::string &type_name) const
+    {
+        auto it = table.find(type_name);
+        if (it != table.end())
+        {
+            return it->second;
         }
-        std::string_view type_name(uint16_t id) const { 
-            if(id < (uint16_t)NType::COUNT){
-                return type_name_arr[id];
-            }
-            auto it = name_map.find(id);
-            if(it != name_map.end()) {
-                return it->second;
-            }
-            
-            return invalid_t_name;
+        return std::nullopt;
+    }
+    std::optional<custom_type_data> get_by_id(uint16_t id) const
+    {
+        auto it = name_map.find(id);
+        if (it != name_map.end())
+        {
+            return get(it->second);
         }
-        static uint16_t native_exists(const std::string& name) {
-            auto it = var_map.at(name);
-            if(it != var_map.end()) {
-                return (uint16_t)it->second;
-            }
-            return invalid_t;
+        return std::nullopt;
+    }
+    std::string_view type_name(uint16_t id) const
+    {
+        if (id < (uint16_t)NType::COUNT)
+        {
+            return type_name_arr[id];
         }
-        std::unordered_map<std::string, custom_type_data> table;
-        std::unordered_map<uint16_t, std::string> name_map;
-        uint16_t next_id;
+        auto it = name_map.find(id);
+        if (it != name_map.end())
+        {
+            return it->second;
+        }
+
+        return invalid_t_name;
+    }
+    static uint16_t native_exists(const std::string &name)
+    {
+        auto it = var_map.at(name);
+        if (it != var_map.end())
+        {
+            return (uint16_t)it->second;
+        }
+        return invalid_t;
+    }
+    std::unordered_map<std::string, custom_type_data> table;
+    std::unordered_map<uint16_t, std::string> name_map;
+    uint16_t next_id;
 };

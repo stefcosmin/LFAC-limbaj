@@ -33,5 +33,8 @@ public:
       : kind(k), label(lbl), expr_type(t),
         left(std::move(l)), right(std::move(r)) {}
 
+        
+  std::string to_string() const;
+
   Value evaluate(scope_node *scope);
 };

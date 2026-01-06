@@ -3,10 +3,13 @@
 }
 
 %{
+
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
 #include <optional>
+#include <vector>
+#include "src/ast.hpp"
 #include <sstream>
 
 #include "src/scope_node.hpp"
@@ -20,6 +23,7 @@ extern FILE* yyin;
 extern char* yytext;
 extern int yylineno;
 
+std::vector<ASTNode*> main_asts;
 int error_count = 0;
 std::stringstream err_stream;
 
@@ -75,7 +79,7 @@ std::vector<var_data> recent_params;
 %token LOGICOP RELOP
 
 
-%type <ast> expr logic_expr rel_expr add_expr mul_expr atom assignment stmt literal
+%type <ast> expr logic_expr rel_expr add_expr mul_expr atom assignment stmt literal declaration
 
 
 /* Precedenta operatorilor */
@@ -132,8 +136,12 @@ function_decl
 
 func_body
     : /* */
-    | func_body declaration
-    | func_body stmt
+    | func_body declaration { 
+        if ($2) main_asts.push_back($2); // Add this line
+    }
+    | func_body stmt {
+        if ($2) main_asts.push_back($2);
+    }
     ;
 
 // acts more or less like an alias
@@ -167,13 +175,17 @@ type
     ;
 
 main_block
-    : MAIN '(' ')' '{' { enter_scope(SNType::FUNCTION, "MAIN"); }
+    : MAIN '(' ')' '{' { enter_scope(SNType::FUNCTION, "MAIN");}
     func_body '}' { exit_scope();}
     ;
 
 stmt_list
     : /* gol */
-    | stmt_list stmt
+    | stmt_list stmt {
+          if ($2 != nullptr) {
+              main_asts.push_back($2);
+          }
+      }
     ;
 
 
@@ -197,13 +209,24 @@ declaration
             invalid_type_err($1);
 
         current_scope->add_variable(var_data(type_id, $2, ""));
+        $$ = nullptr; // No executable code needed for just "int a;"
     }
     | type IDENT ASSIGN expr ';' {
         auto type_id = cdx.type_id($1);
         if(type_id == type_codex::invalid_t)
             invalid_type_err($1);
 
-        current_scope->add_variable(var_data(type_id, $2, "<TODO: CALCULATE VALUE>"));
+        // Add to symbol table
+        current_scope->add_variable(var_data(type_id, $2, ""));
+        
+        // CREATE THE AST NODE FOR EXECUTION
+        $$ = new ASTNode(
+            ASTKind::ASSIGN,
+            ":=",
+            std::make_unique<ASTNode>(ASTKind::LEAF, $2, NType::INVALID), // Left side (Variable name)
+            std::unique_ptr<ASTNode>($4), // Right side (Value)
+            $4->expr_type
+        );
     }
     ;
 
@@ -423,6 +446,28 @@ int main(int argc, const char* argv[]) {
     yyin=fopen(argv[1],"r");
     yyparse();
     dsp::print(root, cdx); 
+
+
+    scope_node* execution_scope = root;
+    
+    // Assuming scope_node has a public 'children' vector or map.
+    // You might need to add a helper function in scope_node.hpp like get_child("MAIN")
+    for (auto* child : root->children) { 
+        if (child->name == "MAIN") {
+            execution_scope = child;
+            break;
+        }
+    }
+
+    if (execution_scope == root) {
+        std::cout << "Warning: Could not find MAIN scope. Variables inside main() will not be found.\n";
+    }
+
+    // Evaluate using the MAIN scope, not the root scope
+    for (auto ast : main_asts) {
+        ast->evaluate(execution_scope); 
+    }
+    
 
      if (error_count == 0) {
          cout << ">> The program is correct!" << endl;

@@ -1,6 +1,6 @@
 #pragma once
 #include "type_codex.hpp"
-#include <string>
+#include <cstring>
 #include <iostream>
 
 struct Value
@@ -39,3 +39,22 @@ struct Value
     }
   }
 };
+
+inline std::string value_to_string(const Value &v)
+{
+  switch (v.type)
+  {
+  case NType::INT:
+    return std::to_string(v.i);
+  case NType::FLOAT:
+    return std::to_string(v.f);
+  case NType::BOOL:
+    return v.b ? "true" : "false";
+  case NType::STRING:
+    return "\"" + v.s + "\"";
+  case NType::VOID:
+    return "void";
+  default:
+    return "<invalid>";
+  }
+}

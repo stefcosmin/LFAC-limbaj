@@ -17,6 +17,7 @@ void sum(int x, int y)
 class point{
     int x;
     int y;
+    int z;
 
     float distance_from_origin(){
         int new_x;
@@ -36,11 +37,14 @@ main()
     point3d p3;
     point2d p2;
     point legit;
+    legit.z=23;
+    legit.x=24;
     legit.dot_product();
     legit.do_a_backflip(3,4);
     int dist = legit.distance_from_orgin();
 
     int point_sum;
+    int s=m+n*n;
     int point_sum = legit.z +legit.x;
 
     Print(a-b);

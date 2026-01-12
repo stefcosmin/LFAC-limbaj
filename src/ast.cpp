@@ -11,7 +11,15 @@ static Value lookup_variable(scope_node *scope, const std::string &name)
       Value val;
       val.type = (NType)v.type_id;
       if (equal(v.type_id, NType::INT))
-        val.i = std::stoi(v.value);
+        try
+        {
+          val.i = v.value.empty() ? 0 : std::stoi(v.value);
+        }
+        catch (...)
+        {
+          val.i = 0;
+        }
+
       if (equal(v.type_id, NType::FLOAT))
         val.f = std::stof(v.value);
       if (equal(v.type_id, NType::BOOL))
@@ -120,6 +128,33 @@ Value ASTNode::evaluate(scope_node *scope)
       result.i = l.i * r.i;
     if (l.type == NType::FLOAT)
       result.f = l.f * r.f;
+  }
+  else if (label == "-")
+  {
+    result.type = l.type;
+    if (l.type == NType::INT)
+      result.i = l.i - r.i;
+    if (l.type == NType::FLOAT)
+      result.f = l.f - r.f;
+  }
+  else if (label == "/")
+  {
+    result.type = l.type;
+    // Basic zero check for safety
+    if (l.type == NType::INT)
+    {
+      if (r.i == 0)
+        std::cerr << "Runtime Error: Division by zero\n";
+      else
+        result.i = l.i / r.i;
+    }
+    if (l.type == NType::FLOAT)
+    {
+      if (r.f == 0.0f)
+        std::cerr << "Runtime Error: Division by zero\n";
+      else
+        result.f = l.f / r.f;
+    }
   }
 
   std::cout << "[EVAL] " << to_string()

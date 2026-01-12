@@ -51,10 +51,10 @@ inline std::string value_to_string(const Value &v)
   case NType::BOOL:
     return v.b ? "true" : "false";
   case NType::STRING:
-    return "\"" + v.s + "\"";
+    return v.s;
   case NType::VOID:
     return "void";
-  default:
-    return "<invalid>";
+  case NType::INVALID:
+    return "invalid";
   }
 }

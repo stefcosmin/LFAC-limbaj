@@ -1,0 +1,40 @@
+int a;
+int b=2;
+
+int sum(int x, int y)
+{
+ return x+y;
+}
+
+
+class point{
+    float x;
+    float y;
+
+    float distance_from_origin(){
+        return x * x + y * y;
+    }
+};
+
+void PrintFromAtoB(int x, int y)
+{
+  while(x<=y){
+    Print(x);
+    x=x+1;
+  }
+}
+
+
+
+main()
+{
+    int m = 1; 
+    int n = 2;
+    m=2+n*2-2;
+    n=m*2+n;
+    point punct;
+    punct.x=4.23;
+    punct.y=8.67;
+    Print(punct.distance_from_orgin());
+    Print(n+m-15);
+}

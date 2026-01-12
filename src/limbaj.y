@@ -217,7 +217,7 @@ declaration
             invalid_type_err($1);
 
         // Add to symbol table
-        current_scope->add_variable(var_data(type_id, $2, ""));
+        current_scope->add_variable(var_data(type_id, $2, "0"));
         
         // CREATE THE AST NODE FOR EXECUTION
         $$ = new ASTNode(

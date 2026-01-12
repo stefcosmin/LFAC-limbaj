@@ -25,16 +25,34 @@ void PrintFromAtoB(int x, int y)
 }
 
 
+bool isPrime(int num){
+    if(num <= 1){
+        return false;
+    }
+    int x;
+    int i=2;
+    int fin=num/2;
+    while(i<=fin)
+    { 
+      x=num/i;
+        if(x*i==num){
+            return false;
+        }
+        i=i+1;
+    }
+    return true;
+}
 
 main()
 {
     int m = 1; 
     int n = 2;
-    m=2+n*2-2;
+    m=2+n*2-1;
     n=m*2+n;
     point punct;
     punct.x=4.23;
     punct.y=8.67;
+    Print(isPrime(sum(m,n)));
     Print(punct.distance_from_orgin());
     Print(n+m-15);
 }

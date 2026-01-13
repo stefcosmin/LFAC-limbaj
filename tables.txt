@@ -1,0 +1,37 @@
+default global
+	Variables: 
+		int b Value: 
+		int a Value: 
+	Functions: 
+		function sum --> int Parameters: { x : int  y : int  }
+function sum
+	Variables: 
+		int y Value: 
+		int x Value: 
+function sum
+	Variables: 
+		int y Value: 
+		int x Value: 
+class point
+	Variables: 
+		int z Value: 
+		int y Value: 
+		int x Value: 
+	Functions: 
+		function distance_from_origin --> float Parameters: { }
+function distance_from_origin
+	Variables: 
+		int new_y Value: 
+		int new_x Value: 
+function MAIN
+	Variables: 
+		int p Value: 
+		int o Value: 
+		int point_sum Value: 
+		int dist Value: 0
+		point legit Value: 
+		int s Value: 0
+		INVALID p2 Value: 
+		INVALID p3 Value: 
+		int n Value: 0
+		int m Value: 0

@@ -11,6 +11,7 @@
 #include <vector>
 #include "src/ast.hpp"
 #include <sstream>
+#include <fstream>
 
 #include "src/scope_node.hpp"
 #include "src/type_codex.hpp"
@@ -445,8 +446,11 @@ int main(int argc, const char* argv[]) {
     }
     yyin=fopen(argv[1],"r");
     yyparse();
-    dsp::print(root, cdx); 
+    dsp::print(root, cdx, std::cout); 
 
+    std::ofstream sym_file("tables.txt");    
+    dsp::print_simple(root, cdx, sym_file);
+    sym_file.close();
 
     scope_node* execution_scope = root;
     
@@ -478,5 +482,6 @@ int main(int argc, const char* argv[]) {
     dsp::print(cdx);
     std::cout << "\n";
     std::cout << err_stream.str();
+
     pclose(yyin);    
 }
